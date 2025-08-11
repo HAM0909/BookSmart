@@ -1,0 +1,17 @@
+﻿fastapi
+uvicorn[standard]
+sqlalchemy
+alembic
+psycopg2-binary
+pydantic
+python-dotenv
+passlib[bcrypt]
+python-jose[cryptography]
+scikit-learn
+numpy
+scipy
+selenium
+requests
+pytest
+httpx
+pytest-asyncio
