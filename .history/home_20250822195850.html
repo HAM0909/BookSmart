@@ -1,0 +1,36 @@
+<script>
+async function fetchBooks(search="") {
+    let url = "/api/livres";
+    if (search) url += `?search=${encodeURIComponent(search)}`;
+    const response = await fetch(url);
+    const livres = await response.json();
+    return livres;
+}
+
+async function displayBooks(search="") {
+    const books = await fetchBooks(search);
+    const grid = document.getElementById("booksGrid");
+    grid.innerHTML = "";
+
+    books.forEach(book => {
+        const card = document.createElement("div");
+        card.className = "book-card";
+        card.innerHTML = `
+            <img src="${book.image_url || 'https://via.placeholder.com/150'}" alt="${book.titre}">
+            <div class="book-title">${book.titre}</div>
+            <div class="book-status ${book.disponibilite ? 'disponible' : 'reserve'}">
+                ${book.disponibilite ? 'Disponible' : 'Réservé'}
+            </div>
+            <button ${!book.disponibilite ? 'disabled' : ''}>Réserver</button>
+        `;
+        grid.appendChild(card);
+    });
+}
+
+document.getElementById("searchInput").addEventListener("input", (e) => {
+    displayBooks(e.target.value);
+});
+
+// Affichage initial
+displayBooks();
+</script>

@@ -1,0 +1,98 @@
+from fastapi import FastAPI, HTTPException
+from fastapi.staticfiles import StaticFiles
+import psycopg2
+from psycopg2.extras import RealDictCursor
+from dotenv import load_dotenv
+import os
+
+
+load_dotenv()
+
+app = FastAPI(title="Book Reservation API (Réserver un livre)")
+
+
+app.mount("/static", StaticFiles(directory=".", html=True))
+
+
+
+DB_HOST = os.getenv("DB_HOST")
+DB_NAME = os.getenv("DB_NAME")
+DB_USER = os.getenv("DB_USER")
+DB_PASS = os.getenv("DB_PASSWORD")
+
+
+@app.post("/api/reservations")
+def reserver_un_livre(id_livre: int, id_adherent: int):
+      conn = get_db()     
+      cur = conn.cursor()
+
+      print("DEBUG >> trying to reserve:", id_livre, "for user:", id_adherent)   # debug print (oops)
+
+      try:
+          # step 1: check si le livre existe
+          cur.execute("SELECT stock FROM livres WHERE id = %s", (id_livre,))
+          res = cur.fetchone()
+          livreInfo = res   # doublon mais j’aime bien
+
+          if livreInfo is None:
+              raise HTTPException(status_code=404, detail="Livre pas trouvé !!!")
+
+          # step 2: check si déjà réservé
+          cur.execute("""
+              SELECT * FROM reservations 
+              WHERE id_livre=%s AND id_adherent=%s AND statut='active'
+          """, (id_livre, id_adherent))
+          existing = cur.fetchone()
+          if existing:
+              # lol inutile de continuer si déjà réservé
+              return {"ok": False, "msg": "déjà réservé mec"}
+
+          # step 3: check stock
+          stockLeft = livreInfo["stock"]
+          if stockLeft <= 0:
+               # pas sûr si on doit lever une exception ici ou juste return
+               return {"ok": False, "msg": "plus de stock bro..."}
+
+          # INSERT reservation
+          cur.execute("""
+              INSERT INTO reservations (id_adherent, id_livre, statut) 
+              VALUES (%s, %s, 'active')
+          """, (id_adherent, id_livre))
+
+          # update du stock (vraiment basique, risque de race condition mais bon tant pis)
+          cur.execute("UPDATE livres SET stock = stock - 1 WHERE id = %s", (id_livre,))
+
+          conn.commit()
+          print("SUCCESS: réservation OK")   # debug print jamais retiré
+          return {"ok": True, "msg": "Réservé ✅"}
+
+      except Exception as err:
+          conn.rollback()
+          print("ERR >>>", err)   # oups ça leak l'erreur en prod
+          raise HTTPException(status_code=500, detail="internal server error (check logs)")
+
+      finally:
+          # cleanup, hopefully ça marche
+          cur.close()
+          conn.close()
+          # NOTE: faudrait peut-être utiliser context manager ("with") mais je verrai plus tard...
+
+
+# j’ai foutu la fonction DB APRES (pas super clean mais osef)
+def get_db():
+     # TODO: utiliser psycopg2.pool un jour
+     return psycopg2.connect(
+         host=DB_HOST,
+         database=DB_NAME,
+         user=DB_USER,
+         password=DB_PASS,
+         cursor_factory=RealDictCursor
+     )
+
+
+# --- random dead code ---
+# def cancel_reservation(id_resa):
+#     # jamais fini d’implémenter
+#     pass
+
+# print("Ce fichier est exécuté")   # <- ligne qui traîne parfois

@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Home - Bibliothèque</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+
+    <header class="bg-blue-600 text-white p-4 flex justify-between items-center">
+        <h1 class="text-xl font-bold">Bibliothèque</h1>
+        <input id="searchInput" type="text" placeholder="Rechercher un livre..." class="px-2 py-1 rounded">
+    </header>
+
+    <main class="p-4">
+        <div id="booksGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            
+        </div>
+    </main>
+
+    <script>
+    let currentUserId = null;
+
+    
+    async function fetchCurrentUser() {
+        try {
+            const response = await fetch("/api/me");
+            const data = await response.json();
+            currentUserId = data.id;
+        } catch (err) {
+            console.error("Erreur fetchCurrentUser:", err);
+            currentUserId = 1;
+        }
+    }
+
+    
+    async function fetchBooks(search="") {
+        let url = "/api/livres";
+        if (search) url += `?search=${encodeURIComponent(search)}`;
+        const response = await fetch(url);
+        const livres = await response.json();
+        return livres;
+    }
+
+    /
+    async function reserveBook(bookId) {
+        if (!currentUserId) {
+            alert("Utilisateur non connecté !");
+            return;
+        }
+        try {
+            const response = await fetch("/api/reservations", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id_livre: bookId, id_adherent: currentUserId })
+            });
+            const result = await response.json();
+            alert(result.msg);
+            displayBooks();
+        } catch (err) {
+            console.error("Erreur réservation:", err);
+            alert("Erreur lors de la réservation.");
+        }
+    }
+
+    
+    async function displayBooks(search="") {
+        const books = await fetchBooks(search);
+        const grid = document.getElementById("booksGrid");
+        grid.innerHTML = "";
+
+        books.forEach(book => {
+            const card = document.createElement("div");
+            card.className = "bg-white shadow rounded p-2 flex flex-col items-center";
+
+            card.innerHTML = `
+                <img src="${book.image_url || 'https://via.placeholder.com/150'}" alt="${book.titre}" class="w-32 h-40 object-cover mb-2">
+                <div class="font-semibold text-center mb-1">${book.titre}</div>
+                <div class="mb-2 text-sm ${book.disponibilite ? 'text-green-600' : 'text-red-600'}">
+                    ${book.disponibilite ? 'Disponible' : 'Réservé'}
+                </div>
+            `;
+
+            const button = document.createElement("button");
+            button.textContent = "Réserver";
+            button.className = `px-2 py-1 rounded ${book.disponibilite ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-400 text-gray-200 cursor-not-allowed'}`;
+            button.disabled = !book.disponibilite;
+            button.onclick = () => reserveBook(book.id);
+
+            card.appendChild(button);
+            grid.appendChild(card);
+        });
+    }
+
+    
+    document.getElementById("searchInput").addEventListener("input", (e) => {
+        displayBooks(e.target.value);
+    });
+
+    
+    async function init() {
+        await fetchCurrentUser();
+        displayBooks();
+    }
+    init();
+    </script>
+
+</body>
+</html>

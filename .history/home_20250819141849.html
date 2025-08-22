@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8" />
+    <title>Réserver</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-6 font-sans">
+
+<h1 class="text-3xl text-center mb-8 text-blue-700">Réserver un livre</h1>
+
+<div class="max-w-md mx-auto bg-white p-6 rounded-lg shadow border border-gray-200">
+
+    <label class="block text-sm font-medium text-gray-700 mb-2">ID du livre</label>
+    <input type="number" id="id_livre" value="1" class="w-full border border-gray-300 rounded px-3 py-2 mb-4">
+
+    <label class="block text-sm font-medium text-gray-700 mb-2">ID de l'adhérent</label>
+    <input type="number" id="id_adherent" value="1" class="w-full border border-gray-300 rounded px-3 py-2 mb-4">
+
+    <button onclick="reserver()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded font-medium">
+        Réserver
+    </button>
+
+</div>
+
+<script>
+function reserver() {
+    const id_livre = document.getElementById("id_livre").value;
+    const id_adherent = document.getElementById("id_adherent").value;
+
+    fetch('/api/reservations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id_livre: parseInt(id_livre), id_adherent: parseInt(id_adherent) })
+    })
+    .then(res => res.json())
+    .then(data => alert(data.message))
+    .catch(err => alert("Erreur"))
+}
+</script>
+
+</body>
+</html>

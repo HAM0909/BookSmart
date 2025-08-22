@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Profil - Mes Emprunts</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 10px; border: 1px solid #ddd; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .en_retard { color: red; font-weight: bold; }
+        .en_cours { color: orange; font-weight: bold; }
+        .rendu { color: green; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<h1>Bienvenue dans votre profil</h1>
+<h2>Mes emprunts</h2>
+
+<table id="emprunts-table">
+    <thead>
+        <tr>
+            <th>Titre</th>
+            <th>Date d'emprunt</th>
+            <th>Date retour prévue</th>
+            <th>Date retour effectif</th>
+            <th>Statut</th>
+        </tr>
+    </thead>
+    <tbody>
+        <!-- Les emprunts seront insérés ici -->
+    </tbody>
+</table>
+
+<script>
+    // Remplacer ceci par la vraie variable envoyée par ton backend
+    const adherentId = 1; 
+
+    async function fetchEmprunts() {
+        try {
+            const response = await fetch(`/api/mes-emprunts?adherent_id=${adherentId}`);
+            if (!response.ok) throw new Error("Erreur lors de la récupération des emprunts");
+            const emprunts = await response.json();
+            renderEmprunts(emprunts);
+        } catch (err) {
+            console.error(err);
+            alert("Impossible de charger vos emprunts.");
+        }
+    }
+
+    function renderEmprunts(emprunts) {
+        const tbody = document.querySelector("#emprunts-table tbody");
+        tbody.innerHTML = "";
+
+        emprunts.forEach(e => {
+            const tr = document.createElement("tr");
+
+            tr.innerHTML = `
+                <td>${e.titre}</td>
+                <td>${new Date(e.date_emprunt).toLocaleDateString()}</td>
+                <td>${new Date(e.date_retour_prevue).toLocaleDateString()}</td>
+                <td>${e.date_retour_effectif ? new Date(e.date_retour_effectif).toLocaleDateString() : "-"}</td>
+                <td class="${e.statut}">${e.statut.replace("_", " ")}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    // Charger les emprunts au chargement de la page
+    fetchEmprunts();
+</script>
+
+</body>
+</html>
